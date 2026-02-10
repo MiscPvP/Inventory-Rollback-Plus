@@ -366,6 +366,10 @@ public class ClickGUI implements Listener {
                     Bukkit.getScheduler().runTask(main, t -> {
                         staff.getInventory().addItem(firstShulker, secondShulker);
                         staff.closeInventory();
+
+                        // Log shulker export
+                        DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp,
+                                "Exported to Shulker Boxes", new ItemStack[] { firstShulker, secondShulker });
                     });
                 });
             }
