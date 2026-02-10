@@ -2,6 +2,7 @@ package me.danjono.inventoryrollback.listeners;
 
 import com.nuclyon.technicallycoded.inventoryrollback.InventoryRollbackPlus;
 import com.nuclyon.technicallycoded.inventoryrollback.customdata.CustomDataItemEditor;
+import com.nuclyon.technicallycoded.inventoryrollback.util.DiscordWebhookLogger;
 import com.tcoded.lightlibs.bukkitversion.BukkitVersion;
 import com.tcoded.lightlibs.bukkitversion.MCVersion;
 import io.papermc.lib.PaperLib;
@@ -20,6 +21,7 @@ import org.bukkit.block.ShulkerBox;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.InventoryView;
@@ -396,6 +398,14 @@ public class ClickGUI implements Listener {
 
                             ItemStack[] inventory = data.getMainInventory();
                             ItemStack[] armour = data.getArmour();
+                            ItemStack[] itemsForLog;
+                            if (armour != null && armour.length > 0) {
+                                itemsForLog = new ItemStack[inventory.length + armour.length];
+                                System.arraycopy(inventory, 0, itemsForLog, 0, inventory.length);
+                                System.arraycopy(armour, 0, itemsForLog, inventory.length, armour.length);
+                            } else {
+                                itemsForLog = inventory;
+                            }
 
                             // Place inventory items sync (compressed code)
                             Future<Void> futureSetInv = main.getServer().getScheduler().callSyncMethod(main,
@@ -425,6 +435,8 @@ public class ClickGUI implements Listener {
                             player.sendMessage(MessageData.getPluginPrefix() + MessageData.getMainInventoryRestoredPlayer(staff.getName()));
                             if (!staff.getUniqueId().equals(player.getUniqueId()))
                                 staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getMainInventoryRestored(offlinePlayer.getName()));
+
+                            DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp, "Main inventory restored", itemsForLog);
                         }
                     }.runTaskAsynchronously(main);
 
@@ -516,7 +528,7 @@ public class ClickGUI implements Listener {
                 }
 
                 if (offlinePlayer.isOnline()) {
-                    Player player = (Player) offlinePlayer;	
+                    Player player = (Player) offlinePlayer;
                     double health = nbt.getDouble("health");
 
                     player.setHealth(health);
@@ -527,6 +539,8 @@ public class ClickGUI implements Listener {
                     player.sendMessage(MessageData.getPluginPrefix() + MessageData.getHealthRestoredPlayer(staff.getName()));
                     if (!staff.getUniqueId().equals(player.getUniqueId()))
                         staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getHealthRestored(player.getName()));
+
+                    DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp, "Health restored");
                 } else {
                     staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getHealthNotOnline(offlinePlayer.getName()));
                 }
@@ -541,7 +555,7 @@ public class ClickGUI implements Listener {
                 }
 
                 if (offlinePlayer.isOnline()) {
-                    Player player = (Player) offlinePlayer;	
+                    Player player = (Player) offlinePlayer;
                     int hunger = nbt.getInt("hunger");
                     Float saturation = nbt.getFloat("saturation");
 
@@ -554,6 +568,8 @@ public class ClickGUI implements Listener {
                     player.sendMessage(MessageData.getPluginPrefix() + MessageData.getHungerRestoredPlayer(staff.getName()));
                     if (!staff.getUniqueId().equals(player.getUniqueId()))
                         staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getHungerRestored(player.getName()));
+
+                    DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp, "Hunger restored");
                 } else {
                     staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getHungerNotOnline(offlinePlayer.getName()));
                 }
@@ -568,7 +584,7 @@ public class ClickGUI implements Listener {
                 }
 
                 if (offlinePlayer.isOnline()) {				
-                    Player player = (Player) offlinePlayer;	
+                    Player player = (Player) offlinePlayer;
                     Float xp = nbt.getFloat("xp");
 
                     RestoreInventory.setTotalExperience(player, xp);
@@ -580,7 +596,9 @@ public class ClickGUI implements Listener {
                     player.sendMessage(MessageData.getPluginPrefix() + MessageData.getExperienceRestoredPlayer(staff.getName(), level));
                     if (!staff.getUniqueId().equals(player.getUniqueId()))
                         staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getExperienceRestored(player.getName(), level));
-                } else {				    
+
+                    DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp, "Experience restored");
+                } else {
                     staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getExperienceNotOnlinePlayer(offlinePlayer.getName()));
                 }
             }
@@ -601,6 +619,16 @@ public class ClickGUI implements Listener {
                 e.setCancelled(false);
             } else if (isValidBackupMenuInteraction) {
                 if (staff.hasPermission("inventoryrollbackplus.restore")) {
+                    if (shouldLogItemRemoval(e.getAction(), e.getCurrentItem())) {
+                        CustomDataItemEditor nbt = CustomDataItemEditor.editItem(icon);
+                        if (nbt.hasUUID()) {
+                            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(nbt.getString("uuid")));
+                            LogType logType = LogType.valueOf(nbt.getString("logType"));
+                            Long timestamp = nbt.getLong("timestamp");
+                            DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp,
+                                    "Item taken from backup GUI", new ItemStack[] { e.getCurrentItem().clone() });
+                        }
+                    }
                     e.setCancelled(false);
                 } else {
                     staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getNoPermission());
@@ -748,6 +776,10 @@ public class ClickGUI implements Listener {
                             } catch (NullPointerException | ExecutionException | InterruptedException ex) {
                                 ex.printStackTrace();
                             }
+
+                            ItemStack[] enderChest = data.getEnderChest();
+                            if (enderChest == null) enderChest = new ItemStack[0];
+                            DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp, "Ender chest restored", enderChest);
                         }
                     }.runTaskAsynchronously(main);
 
@@ -774,8 +806,37 @@ public class ClickGUI implements Listener {
                     staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getNoPermission());
                     return;
                 }
+                if (shouldLogItemRemoval(e.getAction(), e.getCurrentItem())) {
+                    CustomDataItemEditor nbt = CustomDataItemEditor.editItem(icon);
+                    if (nbt.hasUUID()) {
+                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(nbt.getString("uuid")));
+                        LogType logType = LogType.valueOf(nbt.getString("logType"));
+                        Long timestamp = nbt.getLong("timestamp");
+                        DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp,
+                                "Item taken from ender chest backup GUI", new ItemStack[] { e.getCurrentItem().clone() });
+                    }
+                }
                 e.setCancelled(false);
             }
+        }
+    }
+
+    private boolean shouldLogItemRemoval(InventoryAction action, ItemStack item) {
+        if (item == null || item.getType() == Material.AIR || action == null) return false;
+        switch (action) {
+            case MOVE_TO_OTHER_INVENTORY:
+            case PICKUP_ALL:
+            case PICKUP_SOME:
+            case PICKUP_HALF:
+            case PICKUP_ONE:
+            case HOTBAR_MOVE_AND_READD:
+            case HOTBAR_SWAP:
+            case COLLECT_TO_CURSOR:
+            case DROP_ALL_SLOT:
+            case DROP_ONE_SLOT:
+                return true;
+            default:
+                return false;
         }
     }
 

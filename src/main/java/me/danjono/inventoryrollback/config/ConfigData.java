@@ -103,7 +103,13 @@ public class ConfigData {
     private static boolean bStatsEnabled;
     private static boolean debugEnabled;
 
-    public void setVariables() {		
+    private static boolean webhookEnabled;
+    private static String webhookUrl;
+    private static String webhookUsername;
+    private static String webhookAvatarUrl;
+    private static int webhookTimeoutMs;
+
+    public void setVariables() {
         setEnabled((boolean) getDefaultValue("enabled", true));
 
         String folder = (String) getDefaultValue("folder-location", "DEFAULT");
@@ -151,6 +157,12 @@ public class ConfigData {
         setUpdateChecker((boolean) getDefaultValue("update-checker", true));
         setbStatsEnabled((boolean) getDefaultValue("bStats", true));
         setDebugEnabled((boolean) getDefaultValue("debug", false));
+
+        setWebhookEnabled((boolean) getDefaultValue("discord-webhook.enabled", false));
+        setWebhookUrl((String) getDefaultValue("discord-webhook.url", ""));
+        setWebhookUsername((String) getDefaultValue("discord-webhook.username", "InventoryRollbackPlus"));
+        setWebhookAvatarUrl((String) getDefaultValue("discord-webhook.avatar-url", ""));
+        setWebhookTimeoutMs((int) getDefaultValue("discord-webhook.timeout-ms", 5000));
 
         if (saveChanges())
             saveConfig();
@@ -288,6 +300,26 @@ public class ConfigData {
         debugEnabled = enabled;
     }
 
+    public static void setWebhookEnabled(boolean enabled) {
+        webhookEnabled = enabled;
+    }
+
+    public static void setWebhookUrl(String value) {
+        webhookUrl = value;
+    }
+
+    public static void setWebhookUsername(String value) {
+        webhookUsername = value;
+    }
+
+    public static void setWebhookAvatarUrl(String value) {
+        webhookAvatarUrl = value;
+    }
+
+    public static void setWebhookTimeoutMs(int value) {
+        webhookTimeoutMs = value;
+    }
+
     public static boolean isEnabled() {
         return pluginEnabled;
     }
@@ -398,6 +430,26 @@ public class ConfigData {
 
     public static boolean isDebugEnabled() {
         return debugEnabled;
+    }
+
+    public static boolean isWebhookEnabled() {
+        return webhookEnabled;
+    }
+
+    public static String getWebhookUrl() {
+        return webhookUrl;
+    }
+
+    public static String getWebhookUsername() {
+        return webhookUsername;
+    }
+
+    public static String getWebhookAvatarUrl() {
+        return webhookAvatarUrl;
+    }
+
+    public static int getWebhookTimeoutMs() {
+        return webhookTimeoutMs;
     }
 
     private boolean saveChanges = false;
