@@ -53,6 +53,87 @@ public final class DiscordWebhookLogger {
         sendWebhookAsync(webhookUrl, buildJsonPayload(staffName, staffUuid, targetName, targetUuid, logType, backupTime, action, itemsSummary));
     }
 
+    public static void logShulkerExport(Player staff, OfflinePlayer target, LogType logType, long timestamp,
+                                       ItemStack[] firstShulkerContents, ItemStack[] secondShulkerContents) {
+        if (!ConfigData.isWebhookEnabled()) return;
+
+        String webhookUrl = ConfigData.getWebhookUrl();
+        if (webhookUrl == null || webhookUrl.trim().isEmpty()) return;
+
+        String staffName = staff != null ? staff.getName() : "Console";
+        String staffUuid = staff != null ? staff.getUniqueId().toString() : "N/A";
+        String targetName = target != null ? target.getName() : "Unknown";
+        String targetUuid = target != null ? target.getUniqueId().toString() : "N/A";
+        String backupTime = timestamp > 0 ? PlayerData.getTime(timestamp) : "Unknown";
+
+        sendWebhookAsync(webhookUrl, buildShulkerPayload(staffName, staffUuid, targetName, targetUuid, logType, backupTime, firstShulkerContents, secondShulkerContents));
+    }
+
+    // ...existing code...
+    private static String buildShulkerPayload(String staffName,
+                                             String staffUuid,
+                                             String targetName,
+                                             String targetUuid,
+                                             LogType logType,
+                                             String backupTime,
+                                             ItemStack[] firstShulkerContents,
+                                             ItemStack[] secondShulkerContents) {
+        StringBuilder json = new StringBuilder();
+        json.append("{");
+
+        String username = ConfigData.getWebhookUsername();
+        if (username != null && !username.trim().isEmpty()) {
+            json.append("\"username\":\"").append(escapeJson(username)).append("\",");
+        }
+
+        String avatarUrl = ConfigData.getWebhookAvatarUrl();
+        if (avatarUrl != null && !avatarUrl.trim().isEmpty()) {
+            json.append("\"avatar_url\":\"").append(escapeJson(avatarUrl)).append("\",");
+        }
+
+        json.append("\"embeds\":[");
+
+        // Main embed
+        json.append("{");
+        json.append("\"title\":\"Shulker Boxes Exported\",");
+        json.append("\"color\":").append(EMBED_COLOR).append(",");
+        json.append("\"fields\":[");
+        json.append(field("Player", targetName + " (" + targetUuid + ")", false)).append(",");
+        json.append(field("Staff", staffName + " (" + staffUuid + ")", false)).append(",");
+        json.append(field("Action", "Exported to Shulker Boxes", false)).append(",");
+        json.append(field("Log Type", logType != null ? logType.name() : "Unknown", true)).append(",");
+        json.append(field("Backup Time", backupTime, true));
+        json.append("],");
+
+        if (targetUuid != null && !targetUuid.equals("N/A")) {
+            String thumbUrl = "https://minotar.net/avatar/" + targetUuid + "/64";
+            json.append("\"thumbnail\":{\"url\":\"").append(escapeJson(thumbUrl)).append("\"},");
+        }
+
+        json.append("\"timestamp\":\"").append(escapeJson(isoNowUtc())).append("\"");
+        json.append("},");
+
+        // Shulker Box 1 embed
+        json.append("{");
+        json.append("\"title\":\"Shulker Box #1\",");
+        json.append("\"color\":9807270,");
+        json.append("\"description\":\"").append(escapeJson(formatItems(firstShulkerContents))).append("\",");
+        json.append("\"timestamp\":\"").append(escapeJson(isoNowUtc())).append("\"");
+        json.append("},");
+
+        // Shulker Box 2 embed
+        json.append("{");
+        json.append("\"title\":\"Shulker Box #2\",");
+        json.append("\"color\":9807270,");
+        json.append("\"description\":\"").append(escapeJson(formatItems(secondShulkerContents))).append("\"");
+        json.append("}");
+
+        json.append("]");
+        json.append("}");
+        return json.toString();
+    }
+
+
     private static void sendWebhookAsync(String webhookUrl, String payloadJson) {
         if (InventoryRollbackPlus.getInstance() == null || InventoryRollbackPlus.getInstance().isShuttingDown()) return;
 

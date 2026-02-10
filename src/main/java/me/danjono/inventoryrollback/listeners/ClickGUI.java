@@ -367,9 +367,9 @@ public class ClickGUI implements Listener {
                         staff.getInventory().addItem(firstShulker, secondShulker);
                         staff.closeInventory();
 
-                        // Log shulker export
-                        DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp,
-                                "Exported to Shulker Boxes", new ItemStack[] { firstShulker, secondShulker });
+                        // Log shulker export with detailed contents
+                        DiscordWebhookLogger.logShulkerExport(staff, offlinePlayer, logType, timestamp,
+                                firstShulkerContents, secondShulkerContents);
                     });
                 });
             }
