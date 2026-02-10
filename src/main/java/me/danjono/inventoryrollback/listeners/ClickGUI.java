@@ -607,33 +607,11 @@ public class ClickGUI implements Listener {
             int topInvSize = e.getView().getTopInventory().getSize();
             boolean clickIsWithinPlayerInventory = slotIndex >= topInvSize;
 
-            boolean clickIsWithinMainBackupInv = slotIndex < topInvSize - 18;
-            boolean notInLastLine = slotIndex < topInvSize - 9;
-            boolean notBeforeArmorSlots = slotIndex > topInvSize - 15;
-
-            boolean clickIsWithinArmorOrOffHandSlots = notInLastLine && notBeforeArmorSlots;
-            boolean isValidBackupMenuInteraction = clickIsWithinMainBackupInv || clickIsWithinArmorOrOffHandSlots;
-
             //Allow items to be grabbed in the top inventory except the bottom line AND NOT player inventory items to be shift clicked to top inventory
             if (clickIsWithinPlayerInventory && !e.isShiftClick()) {
                 e.setCancelled(false);
-            } else if (isValidBackupMenuInteraction) {
-                if (staff.hasPermission("inventoryrollbackplus.restore")) {
-                    if (shouldLogItemRemoval(e.getAction(), e.getCurrentItem())) {
-                        CustomDataItemEditor nbt = CustomDataItemEditor.editItem(icon);
-                        if (nbt.hasUUID()) {
-                            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(nbt.getString("uuid")));
-                            LogType logType = LogType.valueOf(nbt.getString("logType"));
-                            Long timestamp = nbt.getLong("timestamp");
-                            DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp,
-                                    "Item taken from backup GUI", new ItemStack[] { e.getCurrentItem().clone() });
-                        }
-                    }
-                    e.setCancelled(false);
-                } else {
-                    staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getNoPermission());
-                }
             }
+            // All other clicks in the backup menu are cancelled (no item removal allowed)
         }
     }
 
@@ -800,44 +778,10 @@ public class ClickGUI implements Listener {
 
             if (clickIsWithinPlayerInventory && !e.isShiftClick()) {
                 e.setCancelled(false);
-            } else if (slotIndex < topInvSize - 9) {
-                // Perm check
-                if (!staff.hasPermission("inventoryrollbackplus.restore")) {
-                    staff.sendMessage(MessageData.getPluginPrefix() + MessageData.getNoPermission());
-                    return;
-                }
-                if (shouldLogItemRemoval(e.getAction(), e.getCurrentItem())) {
-                    CustomDataItemEditor nbt = CustomDataItemEditor.editItem(icon);
-                    if (nbt.hasUUID()) {
-                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(nbt.getString("uuid")));
-                        LogType logType = LogType.valueOf(nbt.getString("logType"));
-                        Long timestamp = nbt.getLong("timestamp");
-                        DiscordWebhookLogger.logRollback(staff, offlinePlayer, logType, timestamp,
-                                "Item taken from ender chest backup GUI", new ItemStack[] { e.getCurrentItem().clone() });
-                    }
-                }
-                e.setCancelled(false);
             }
+            // All other clicks in the backup menu are cancelled (no item removal allowed)
         }
     }
 
-    private boolean shouldLogItemRemoval(InventoryAction action, ItemStack item) {
-        if (item == null || item.getType() == Material.AIR || action == null) return false;
-        switch (action) {
-            case MOVE_TO_OTHER_INVENTORY:
-            case PICKUP_ALL:
-            case PICKUP_SOME:
-            case PICKUP_HALF:
-            case PICKUP_ONE:
-            case HOTBAR_MOVE_AND_READD:
-            case HOTBAR_SWAP:
-            case COLLECT_TO_CURSOR:
-            case DROP_ALL_SLOT:
-            case DROP_ONE_SLOT:
-                return true;
-            default:
-                return false;
-        }
-    }
 
 }
