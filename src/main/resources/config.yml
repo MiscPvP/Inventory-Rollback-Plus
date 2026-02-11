@@ -80,7 +80,7 @@ debug: false
 # and paste the URL below.
 discord-webhook:
   enabled: true
-  url: 'https://discord.com/api/webhooks/1470759666630922312/zs_H6wF4nibobhima0UdPFLKrJNpapzcBxDWz0IUo-iR3JhuZOiWCQp6d4GDYvVVfg-G'
+  url: ''
   username: 'InventoryRollbackPlus'
   avatar-url: ''
   timeout-ms: 5000
